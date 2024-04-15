@@ -44,33 +44,19 @@ esac
 SCRIPTLIB=$(dirname $(readlink -f "$0"))/lib/
 test -d "$SCRIPTLIB"
 
-if [[ $CSV -eq 1 ]]
-then 
-  printf "\"St\",\"Name\",\"Version\",\"Arch\",\"Description\",\"Licenses\"\n"
-else 
-  format='%-2s  %-30s %-30s %-6s %-60s %s\n'
-  printf "$format" "St" "Name" "Version" "Arch" "Description" "Licenses"
-  printf "$format" "--" "----" "-------" "----" "-----------" "--------"
-fi
 
-COLUMNS=2000 dpkg -l | grep '^.[iufhwt]' | while read pState package pVer pArch pDesc; do
-  license=
-  for method in "$SCRIPTLIB"/reader*; do
-    [ -f "$method" ] || continue
-    license=$("$method" "$package")
-    [ $? -eq 0 ] || exit 1
-    [ -n "$license" ] || continue
-    # remove line breaks and spaces
-    license=$(echo "$license" | tr '\n' ' ' | sed -r -e 's/ +/ /g' -e 's/^ +//' -e 's/ +$//')
-    [ -z "$license" ] || break
-  done
-  [ -n "$license" ] || license='unknown'
-
-  if [[ $CSV -eq 1 ]]
-  then
-    printf "\"$pState\",\"$package\",\"$pVer\",\"$pArch\",\"$pDesc\",\"$license\"\n"
-  else
-    printf "$format" "$pState" "${package:0:30}" "${pVer:0:30}" "${pArch:0:6}" "${pDesc:0:60}" "$license"
-  fi 
+package=$1
+license=
+for method in "$SCRIPTLIB"/reader*; do
+  [ -f "$method" ] || continue
+  license=$("$method" "$package")
+  [ $? -eq 0 ] || exit 1
+  [ -n "$license" ] || continue
+  # remove line breaks and spaces
+  license=$(echo "$license" | tr '\n' ' ' | sed -r -e 's/ +/ /g' -e 's/^ +//' -e 's/ +$//')
+  [ -z "$license" ] || break
 done
+[ -n "$license" ] || license='unknown'
+
+echo $license | cut -d' ' -f1
 
